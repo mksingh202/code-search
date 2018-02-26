@@ -38,25 +38,31 @@ class GitController extends FOSRestController
             $order = $request->query->get('order');
         }
         
-        //Prepare service provider url with query string.
-        $serviceUrl = $this->container->getParameter('serviceUrl')."?q=".$qryStr."&sort=".$sort."&order=".$order."&page=".$page."&per_page=".$limit;
-        
-        //Curl request to get result for git service providers.
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $serviceUrl);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-type: application/json')); // Assuming you're requesting JSON
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_USERAGENT, $_SERVER['HTTP_USER_AGENT']);
-        $response = curl_exec($ch);
-        
-        // If using JSON...
-        $data = json_decode($response);
-        $result = array();     
-        foreach($data->items as $key=>$value){
-            $result[$key]['owner'] = $value->owner->login;
-            $result[$key]['repository'] = $value->name;
-            $result[$key]['file'] = $value->full_name;
+        $result = array();
+        try {
+            //Prepare service provider url with query string.
+            $serviceUrl = $this->container->getParameter('serviceUrl')."?q=".$qryStr."&sort=".$sort."&order=".$order."&page=".$page."&per_page=".$limit;
+
+            //Curl request to get result for git service providers.
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $serviceUrl);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-type: application/json')); // Assuming you're requesting JSON
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_USERAGENT, $_SERVER['HTTP_USER_AGENT']);
+            $response = curl_exec($ch);
+
+            // If using JSON...
+            $data = json_decode($response);            
+            foreach($data->items as $key=>$value){
+                $result[$key]['owner'] = $value->owner->login;
+                $result[$key]['repository'] = $value->name;
+                $result[$key]['file'] = $value->full_name;
+            }
+        } catch (\Exception $e) {
+            $message = "Data not found";
+            throw $this->createNotFoundException($message, $e);
         }
+            
         return json_encode($result);
     }
 }
